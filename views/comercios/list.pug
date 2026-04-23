@@ -1,0 +1,14 @@
+extends ../layout
+
+block content
+  h2 Lista de Comercios
+
+  a(href="/comercios/nuevo") + Nuevo Comercio
+
+  ul
+    each comercio in comercios
+      li
+        strong #{comercio.nombre_comercio}
+        |  - Estado: #{comercio.estado}
+        |  
+        a(href=`/comercios/${comercio.id}`) Ver detalle

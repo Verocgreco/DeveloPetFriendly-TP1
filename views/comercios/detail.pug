@@ -1,0 +1,34 @@
+extends ../layout
+
+block content
+  h2 Detalle Comercio
+
+  p
+    strong ID:
+    | #{comercio.id}
+
+  p
+    strong Nombre:
+    | #{comercio.nombre_comercio}
+
+  p
+    strong CUIT:
+    | #{comercio.cuit}
+
+  p
+    strong Email:
+    | #{comercio.email_contacto}
+
+  p
+    strong Plan:
+    | #{comercio.plan_suscripcion}
+
+  p
+    strong Comisión:
+    | #{comercio.comision_variable}
+
+  p
+    strong Estado:
+    | #{comercio.estado}
+
+  a(href="/comercios") Volver

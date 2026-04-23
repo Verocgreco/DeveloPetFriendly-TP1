@@ -1,0 +1,22 @@
+extends ../layout
+
+block content
+  h2 Nuevo Comercio
+
+  form(method="POST", action="/comercios")
+    input(type="text", name="nombre_comercio", placeholder="Nombre", required)
+
+    input(type="text", name="cuit", placeholder="CUIT", required)
+
+    input(type="email", name="email_contacto", placeholder="Email", required)
+
+    select(name="plan_suscripcion")
+      option(value="Basico") Básico
+      option(value="Premium") Premium
+
+    input(type="number", step="0.01", name="comision_variable", placeholder="Comisión")
+
+    button(type="submit") Guardar
+
+  br
+  a(href="/comercios") Volver

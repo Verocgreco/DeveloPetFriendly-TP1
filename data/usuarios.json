@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "nombre": "Juan",
+    "email": "juan@techretail.com",
+    "rol": "Administrador",
+    "estado": "Activo"
+  },
+  {
+    "id": 2,
+    "nombre": "Pepo",
+    "email": "pep@ss.com",
+    "rol": "Administrador",
+    "estado": "Activo"
+  }
+]
