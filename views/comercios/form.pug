@@ -1,22 +1,38 @@
 extends ../layout
 
 block content
-  h2 Nuevo Comercio
+  .card
+    .card-header
+      div
+        h2 Nuevo Comercio
+        p.muted Completá los datos para registrar un comercio en la plataforma.
+      .actions
+        a.btn(href="/comercios/vista") Volver al listado
+        a.btn.btn-ghost(href="/") Inicio
 
-  form(method="POST", action="/comercios")
-    input(type="text", name="nombre_comercio", placeholder="Nombre", required)
+    form(method="POST", action="/comercios")
+      .form-grid
+        .field.field-full
+          label(for="nombre_comercio") Nombre del comercio
+          input#nombre_comercio(type="text", name="nombre_comercio", placeholder="Ej: Mascotas SRL", required)
 
-    input(type="text", name="cuit", placeholder="CUIT", required)
+        .field
+          label(for="cuit") CUIT
+          input#cuit(type="text", name="cuit", placeholder="Ej: 20-12345678-9", required)
 
-    input(type="email", name="email_contacto", placeholder="Email", required)
+        .field
+          label(for="email_contacto") Email de contacto
+          input#email_contacto(type="email", name="email_contacto", placeholder="contacto@empresa.com", required)
 
-    select(name="plan_suscripcion")
-      option(value="Basico") Básico
-      option(value="Premium") Premium
+        .field
+          label(for="plan_suscripcion") Plan de suscripción
+          select#plan_suscripcion(name="plan_suscripcion")
+            option(value="Basico") Básico
+            option(value="Premium") Premium
 
-    input(type="number", step="0.01", name="comision_variable", placeholder="Comisión")
+        .field
+          label(for="comision_variable") Comisión variable
+          input#comision_variable(type="number", step="0.01", name="comision_variable", placeholder="Ej: 2.5")
 
-    button(type="submit") Guardar
-
-  br
-  a(href="/comercios") Volver
+      .actions
+        button.btn.btn-primary(type="submit") Guardar
