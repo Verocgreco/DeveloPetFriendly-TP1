@@ -51,57 +51,44 @@ const obtenerOperacionPorId = (req, res) => {
 
 // CREATE
 const crearOperacion = (req, res) => {
+    try {
+        // 1. Leemos el archivo de transacciones para hacer la validación
+        const dataTransacciones = fs.readFileSync(rutaTransacciones, "utf-8");
+        const transacciones = JSON.parse(dataTransacciones);
 
-    const operaciones = leerOperaciones();
+        // 2. Convertimos el dato que llega a número con parseInt
+        const idTransaccionBuscado = parseInt(req.body.id_transaccion);
 
-    const {
-        transaccion_id,
-        empresa_transporte,
-        direccion_destino
-    } = req.body;
+        // 3. Buscamos si la transacción realmente existe
+        const transaccionExiste = transacciones.find(t => t.id === idTransaccionBuscado);
 
-    // VALIDAR TRANSACCION EXISTENTE
-    if (fs.existsSync(rutaTransacciones)) {
-
-        const transacciones = JSON.parse(
-            fs.readFileSync(rutaTransacciones, "utf-8")
-        );
-
-        const existe = transacciones.find(
-            t => t.id === parseInt(transaccion_id)
-        );
-
-        if (!existe) {
-            return res.status(400).json({
-                mensaje: "La transacción indicada no existe"
-            });
+        if (!transaccionExiste) {
+            // Si NO existe, bloqueamos la acción y devolvemos 400 Bad Request
+            return res.status(400).json({ error: "La transacción indicada no existe" });
         }
+
+        // 4. Si la transacción SÍ existe, continuamos con la creación del envío
+        const operaciones = leerOperaciones();
+        const nuevoId = operaciones.length > 0 ? operaciones[operaciones.length - 1].id + 1 : 1;
+
+        // Instanciamos el objeto usando la clase Logistica
+        const nuevaOperacion = new Logistica(
+            nuevoId,
+            idTransaccionBuscado,
+            req.body.empresa_transporte,
+            req.body.direccion_destino
+        );
+
+        operaciones.push(nuevaOperacion);
+        guardarOperaciones(operaciones); // Guardamos en logistica.json
+
+        // 5. Devolvemos el código de éxito
+        res.status(201).json(nuevaOperacion);
+
+    } catch (error) {
+        res.status(500).json({ error: "Error interno al crear el registro de logística" });
     }
-
-    const nuevoId =
-        operaciones.length > 0
-            ? operaciones[operaciones.length - 1].id + 1
-            : 1;
-
-    const nuevaOperacion = new Logistica(
-        nuevoId,
-        parseInt(transaccion_id),
-        "Pendiente de despacho",
-        empresa_transporte || "Logística General",
-        direccion_destino,
-        new Date().toISOString()
-    );
-
-    operaciones.push(nuevaOperacion);
-
-    guardarOperaciones(operaciones);
-
-    res.status(201).json({
-        mensaje: "Operación logística creada correctamente",
-        logistica: nuevaOperacion
-    });
 };
-
 
 // UPDATE
 const actualizarOperacion = (req, res) => {
