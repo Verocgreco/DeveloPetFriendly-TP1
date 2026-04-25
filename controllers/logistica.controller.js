@@ -75,8 +75,10 @@ const crearOperacion = (req, res) => {
         const nuevaOperacion = new Logistica(
             nuevoId,
             idTransaccionBuscado,
+            "Pendiente de despacho", //asignación automática
             req.body.empresa_transporte,
-            req.body.direccion_destino
+            req.body.direccion_destino,
+            new Date().toISOString()
         );
 
         operaciones.push(nuevaOperacion);
