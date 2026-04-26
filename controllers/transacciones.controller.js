@@ -14,6 +14,11 @@ const leerTransacciones = () => {
     return JSON.parse(data);
 };
 
+//leer tiendas
+const leerTiendas = () => { 
+    const data = fs.readFileSync(rutaTiendas, "utf-8"); 
+    return JSON.parse(data); 
+};
 
 // GUARDAR ARCHIVO
 const guardarTransacciones = (transacciones) => {
@@ -52,101 +57,65 @@ const obtenerTransaccionPorId = (req, res) => {
 
 // CREATE
 const crearTransaccion = (req, res) => {
+    // 1. Traemos las tiendas a la memoria y validamos
+    const tiendas = leerTiendas();
+    const idTiendaBuscada = parseInt(req.body.id_tienda);
+    const tiendaExiste = tiendas.find(t => t.id === idTiendaBuscada);
 
+    if (!tiendaExiste) {
+        return res.status(400).json({ error: "La tienda indicada no existe en el sistema" });
+    }
+
+    // 2. LÓGICA DE CONCILIACIÓN Y OBSERVACIÓN DINÁMICA
+    const montoTotalReal = parseFloat(req.body.monto_total);
+    const montoPasarela = parseFloat(req.body.monto_informado_pasarela);
+    
+    let estadoConciliacionCalculado = "Pendiente";
+    let observacionCalculada = "Sin observaciones";
+
+    if (montoTotalReal === montoPasarela) {
+        estadoConciliacionCalculado = "Conciliado OK";
+        observacionCalculada = "Sin diferencias en el flujo monetario";
+    } else {
+        estadoConciliacionCalculado = "Inconsistencia Detectada";
+        // Calculamos la diferencia y el porcentaje de error
+        const diferencia = Math.abs(montoTotalReal - montoPasarela);
+        const porcentajeError = ((diferencia / montoTotalReal) * 100).toFixed(2);
+        
+        observacionCalculada = `Alerta: La pasarela informó una diferencia de $${diferencia} (${porcentajeError}%)`;
+    }
+
+    // ⭐ 3. LÓGICA DEL SPLIT DE PAGOS (5% de comisión)
+    const porcentajeComision = 0.05; 
+    const comisionTechretail = parseFloat((montoTotalReal * porcentajeComision).toFixed(2));
+    const ingresoComercio = parseFloat((montoTotalReal - comisionTechretail).toFixed(2));
+
+    // Armamos el objeto tal como lo espera tu JSON
+    const splitPagosCalculado = {
+        comision_techretail: comisionTechretail,
+        ingreso_comercio: ingresoComercio
+    };
+
+    // 4. CREACIÓN DE LA TRANSACCIÓN
     const transacciones = leerTransacciones();
-
-    const {
-        tienda_id,
-        monto_total,
-        monto_informado_pasarela
-    } = req.body;
-
-    // VALIDAR TIENDA
-    const tiendas = JSON.parse(
-        fs.readFileSync(rutaTiendas, "utf-8")
-    );
-
-    const tienda = tiendas.find(
-        t =>
-            t.id === parseInt(tienda_id) &&
-            t.estado === "Activa"
-    );
-
-    if (!tienda) {
-        return res.status(400).json({
-            mensaje: "La tienda indicada no existe o está inactiva"
-        });
-    }
-
-    // VALIDAR COMERCIO
-    const comercios = JSON.parse(
-        fs.readFileSync(rutaComercios, "utf-8")
-    );
-
-    const comercio = comercios.find(
-        c =>
-            c.id === parseInt(tienda.comercio_id) &&
-            c.estado === "Activo"
-    );
-
-    if (!comercio) {
-        return res.status(400).json({
-            mensaje: "El comercio asociado no existe o está inactivo"
-        });
-    }
-
-    const montoTotal = parseFloat(monto_total);
-    const montoPasarela = parseFloat(monto_informado_pasarela);
-    const comision = parseFloat(comercio.comision_variable);
-
-    const montoTechRetail = montoTotal * comision;
-    const montoComercio = montoTotal - montoTechRetail;
-
-    let estadoConciliacion = "Conciliado OK";
-    let observacion = "Sin diferencias en el flujo monetario";
-
-    if (montoTotal !== montoPasarela) {
-
-        const diferencia = montoTotal - montoPasarela;
-        const porcentaje =
-            (diferencia / montoTotal) * 100;
-
-        estadoConciliacion = "Inconsistencia Detectada";
-        observacion =
-            `Alerta: La pasarela informó una diferencia de $${diferencia} (${porcentaje.toFixed(2)}%)`;
-    }
-
-    const nuevoId =
-        transacciones.length > 0
-            ? transacciones[transacciones.length - 1].id + 1
-            : 1;
-
+    
     const nuevaTransaccion = new Transaccion(
-        nuevoId,
-        tienda.id,
-        comercio.id,
-        new Date().toISOString(),
-        montoTotal,
-        montoPasarela,
-        {
-            comision_techretail: montoTechRetail,
-            ingreso_comercio: montoComercio
-        },
-        estadoConciliacion,
-        observacion
+        transacciones.length > 0 ? transacciones[transacciones.length - 1].id + 1 : 1, // 1. id
+        idTiendaBuscada, // 2. tienda_id 
+        parseInt(req.body.comercio_id), // 3. comercio_id 
+        req.body.fecha || new Date().toISOString(), // 4. fecha 
+        montoTotalReal, // 5. monto_total
+        montoPasarela, // 6. monto_informado_pasarela
+        splitPagosCalculado, // 7. ⭐ Pasamos el OBJETO matemático
+        estadoConciliacionCalculado, // 8. ⭐ Pasamos el ESTADO calculado
+        observacionCalculada // 9. ⭐ Pasamos el TEXTO de alerta
     );
 
     transacciones.push(nuevaTransaccion);
-
     guardarTransacciones(transacciones);
 
-    res.status(201).json({
-        mensaje: "Transacción registrada correctamente",
-        transaccion: nuevaTransaccion
-    });
+    res.status(201).json(nuevaTransaccion);
 };
-
-
 // UPDATE
 const actualizarTransaccion = (req, res) => {
 

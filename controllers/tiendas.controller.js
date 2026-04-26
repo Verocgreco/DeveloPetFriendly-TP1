@@ -13,6 +13,10 @@ const leerTiendas = () => {
     return JSON.parse(data);
 };
 
+const leerComercios = () => { 
+    const data = fs.readFileSync(rutaComercios, "utf-8"); 
+    return JSON.parse(data); 
+};
 
 // GUARDAR ARCHIVO
 const guardarTiendas = (tiendas) => {
@@ -51,58 +55,33 @@ const obtenerTiendaPorId = (req, res) => {
 
 // CREATE
 const crearTienda = (req, res) => {
+    // A. Traemos todos los comercios a la memoria
+    const comercios = leerComercios();
 
-    const tiendas = leerTiendas();
+    // B. Convertimos el ID que llega de Thunder Client a número
+    const idComercioBuscado = parseInt(req.body.id_comercio);
 
-    const {
-        nombre,
-        comercio_id,
-        ubicacion
-    } = req.body;
+    // C. Validamos si el comercio realmente existe
+    const comercioExiste = comercios.find(c => c.id === idComercioBuscado);
 
-    // VALIDAR COMERCIO EXISTENTE Y ACTIVO
-    if (fs.existsSync(rutaComercios)) {
-
-        const comercios = JSON.parse(
-            fs.readFileSync(rutaComercios, "utf-8")
-        );
-
-        const comercio = comercios.find(
-            c =>
-                c.id === parseInt(comercio_id) &&
-                c.estado === "Activo"
-        );
-
-        if (!comercio) {
-            return res.status(400).json({
-                mensaje: "El comercio indicado no existe o está inactivo"
-            });
-        }
+    if (!comercioExiste) {
+        return res.status(400).json({ error: "El comercio indicado no existe" });
     }
 
-    const nuevoId =
-        tiendas.length > 0
-            ? tiendas[tiendas.length - 1].id + 1
-            : 1;
-
+    // D. Si existe, procedemos a crear la tienda
+    const tiendas = leerTiendas();
     const nuevaTienda = new Tienda(
-        nuevoId,
-        nombre,
-        parseInt(comercio_id),
-        ubicacion,
-        "Activa"
+        tiendas.length > 0 ? tiendas[tiendas.length - 1].id + 1 : 1,
+        req.body.nombre_sucursal,
+        idComercioBuscado, // Usamos el ID numérico validado
+        req.body.ubicacion
     );
 
     tiendas.push(nuevaTienda);
-
     guardarTiendas(tiendas);
 
-    res.status(201).json({
-        mensaje: "Tienda creada correctamente",
-        tienda: nuevaTienda
-    });
+    res.status(201).json(nuevaTienda);
 };
-
 
 // UPDATE
 const actualizarTienda = (req, res) => {
