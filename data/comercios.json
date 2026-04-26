@@ -59,7 +59,7 @@
     "cuit": "30968558741",
     "email_contacto": "colitas@mail.com",
     "plan_suscripcion": "Basico",
-    "comision_variable": "100000",
+    "comision_variable": 0.05,
     "estado": "Activo"
   }
 ]

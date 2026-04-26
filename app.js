@@ -13,7 +13,7 @@ const usuariosRoutes = require("./routes/usuarios.routes");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ⭐ MIDDLEWARE PERSONALIZADO 1: Request Logger
+// MIDDLEWARE PERSONALIZADO 1: Request Logger
 
 app.use((req, res, next) => {
     console.log(`[LOG] Petición recibida: ${req.method} a la ruta ${req.url}`);
@@ -37,7 +37,7 @@ app.use("/estadisticas", estadisticasRoutes);
 app.use("/logistica", logisticaRoutes);
 app.use("/usuarios", usuariosRoutes);
 
-// ⭐ MIDDLEWARE PERSONALIZADO 2: Manejo de Error 404 sin rutas
+// MIDDLEWARE PERSONALIZADO 2: Manejo de Error 404 sin rutas
 //Si la petición del usuario no coincidió 
 // con ninguna de las rutas de arriba, cae directamente acá.
 app.use((req, res, next) => {
