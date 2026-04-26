@@ -57,7 +57,7 @@ const crearOperacion = (req, res) => {
         const transacciones = JSON.parse(dataTransacciones);
 
         // 2. Convertimos el dato que llega a número con parseInt
-        const idTransaccionBuscado = parseInt(req.body.id_transaccion);
+        const idTransaccionBuscado = parseInt(req.body.transaccion_id);
 
         // 3. Buscamos si la transacción realmente existe
         const transaccionExiste = transacciones.find(t => t.id === idTransaccionBuscado);
