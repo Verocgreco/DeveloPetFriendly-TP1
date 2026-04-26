@@ -1,122 +1,64 @@
 const fs = require("fs");
 const path = require("path");
 
-const Estadistica = require("../models/estadisticas.model");
+// Ruta al archivo de transacciones
+const rutaTransacciones = path.join(__dirname, "../data/transacciones.json");
 
-const rutaArchivo = path.join(
-    __dirname,
-    "../data/transacciones.json"
-);
-
-
-// LEER TRANSACCIONES
-const leerTransacciones = () => {
-    const data = fs.readFileSync(
-        rutaArchivo,
-        "utf-8"
-    );
-
-    return JSON.parse(data);
-};
-
-
-// GET REPORTE GENERAL
 const obtenerReporteHotSale = (req, res) => {
-
     try {
+        // 1. Leemos el archivo de transacciones
+        const data = fs.readFileSync(rutaTransacciones, "utf-8");
+        const transacciones = JSON.parse(data);
 
-        const transacciones =
-            leerTransacciones();
+        // 2. Variables para acumular los cálculos
+        let volumenMovido = 0;
+        let gananciaPlataforma = 0;
+        let cantidadInconsistencias = 0;
 
-        let totalVentas =
-            transacciones.length;
-
-        let dineroTotal = 0;
-
-        let ganancias = 0;
-
-        let inconsistencias = 0;
-
-
-        transacciones.forEach(t => {
-
-            dineroTotal +=
-                t.monto_total;
-
-            ganancias +=
-                t.split_pagos
-                 .comision_techretail;
-
-            if (
-                t.estado_conciliacion ===
-                "Inconsistencia Detectada"
-            ) {
-                inconsistencias++;
+        // 3. Recorremos todas las ventas para hacer las sumas
+        transacciones.forEach(venta => {
+            // Sumamos el volumen total
+            volumenMovido += venta.monto_total;
+            
+            // Sumamos la ganancia de la plataforma sacándola del objeto split_pagos
+            if (venta.split_pagos && venta.split_pagos.comision_techretail) {
+                gananciaPlataforma += venta.split_pagos.comision_techretail;
             }
 
+            // Contamos cuántas fallaron en la pasarela
+            if (venta.estado_conciliacion === "Inconsistencia Detectada") {
+                cantidadInconsistencias++;
+            }
         });
 
+        // 4. Calculamos la Tasa de Error en porcentaje
+        const ventasTotales = transacciones.length;
+        let tasaError = "0.00%";
+        if (ventasTotales > 0) {
+            tasaError = ((cantidadInconsistencias / ventasTotales) * 100).toFixed(2) + "%";
+        }
 
-        const porcentajeError =
-            totalVentas > 0
-                ? (
-                    inconsistencias /
-                    totalVentas *
-                    100
-                  ).toFixed(2)
-                : "0.00";
+        // 5. Armamos el objeto final del reporte
+        const reporte = {
+            evento: "Campaña Hot Sale - TechRetail Solutions",
+            ventas_totales: ventasTotales,
+            volumen_movido: `$${volumenMovido.toFixed(2)}`,
+            ganancia_plataforma: `$${gananciaPlataforma.toFixed(2)}`,
+            tasa_de_error: tasaError,
+            estado_del_sistema: cantidadInconsistencias > 0 ? "Alerta: Revisar Pasarela" : "Operando con normalidad"
+        };
 
-
-        const estadoGeneral =
-            porcentajeError > 5
-                ? "Alerta Crítica: Revisar Pasarela"
-                : "Operación Estable";
-
-
-        const reporte =
-            new Estadistica(
-
-                "Campaña Hot Sale - TechRetail Solutions",
-
-                new Date().toISOString(),
-
-                {
-                    total_ventas_procesadas:
-                        totalVentas,
-
-                    volumen_total_dinero:
-                        dineroTotal,
-
-                    ganancias_plataforma:
-                        ganancias
-                },
-
-                {
-                    inconsistencias_pasarela:
-                        inconsistencias,
-
-                    tasa_de_error:
-                        porcentajeError + "%",
-
-                    estado_general:
-                        estadoGeneral
-                }
-            );
-
-
-        res.json(reporte);
+        // Devolvemos el reporte exitoso
+        res.status(200).json(reporte);
 
     } catch (error) {
-
-        res.status(500).json({
-            mensaje:
-            "Error al generar el reporte"
+        //  Imprimimos el error real en la consola para saber qué falló
+        console.log("Error detallado en el backend:", error);
+        res.status(500).json({ 
+            mensaje: "Error al generar el reporte", 
+            detalle: error.message 
         });
-
     }
 };
 
-
-module.exports = {
-    obtenerReporteHotSale
-};
+module.exports = { obtenerReporteHotSale };
